@@ -1,0 +1,47 @@
+{
+    "name": "norvica/container",
+    "description": "PHP dependency injection container.",
+    "type": "library",
+    "license": "MIT",
+    "keywords": [
+        "php",
+        "DI",
+        "dependency",
+        "injection",
+        "service",
+        "container"
+    ],
+    "authors": [
+        {
+            "name": "Serge Kvashnin",
+            "email": "75180587+serge-kvashnin@users.noreply.github.com"
+        }
+    ],
+    "config": {
+        "sort-packages": true
+    },
+    "autoload": {
+        "files": [
+            "src/functions.php"
+        ],
+        "psr-4": {
+            "Norvica\\Container\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\Norvica\\Container\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "./vendor/bin/phpunit --testdox"
+    },
+    "minimum-stability": "stable",
+    "require": {
+        "php": ">=8.2",
+        "psr/container": "^2.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.1"
+    }
+}
