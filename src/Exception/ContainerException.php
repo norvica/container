@@ -7,6 +7,6 @@ namespace Norvica\Container\Exception;
 use LogicException;
 use Psr\Container\ContainerExceptionInterface;
 
-final class ContainerException extends LogicException implements ContainerExceptionInterface
+class ContainerException extends LogicException implements ContainerExceptionInterface
 {
 }

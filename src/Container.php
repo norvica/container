@@ -10,6 +10,7 @@ use Norvica\Container\Definition\Env;
 use Norvica\Container\Definition\Obj;
 use Norvica\Container\Definition\Ref;
 use Norvica\Container\Definition\Val;
+use Norvica\Container\Exception\CircularDependencyException;
 use Norvica\Container\Exception\ContainerException;
 use Norvica\Container\Exception\NotFoundException;
 use Psr\Container\ContainerInterface;
@@ -20,13 +21,14 @@ use ReflectionNamedType;
 use ReflectionParameter;
 
 // TODO: compiling
-// TODO: circular dependency handling
 final class Container implements ContainerInterface
 {
     /**
      * @var array<string, mixed>
      */
     private array $resolved = [];
+
+    private array $resolving = [];
 
     public function __construct(
         private readonly Definitions $definitions,
@@ -46,16 +48,33 @@ final class Container implements ContainerInterface
             return $this->resolved[$id];
         }
 
+        if ($this->inProgress($id)) {
+            throw new CircularDependencyException(
+                sprintf(
+                    "Circular dependency detected when resolving the following chain: '%s' → '{$id}'.",
+                    implode("' → '", $this->resolving),
+                )
+            );
+        }
+
+        $this->resolvingStarted($id);
+
         // if ID is a class name, try to construct it, even if it's not registered explicitly
         if (!$this->has($id)) {
             if (!class_exists($id)) {
                 throw new NotFoundException("Definition '{$id}' not found.");
             }
 
-            return $this->resolve(new Obj($id));
+            $resolved = $this->resolve(new Obj($id));
+            $this->resolvingFinished($id);
+
+            return $resolved;
         }
 
-        return $this->resolve($this->definitions->get($id));
+        $resolved = $this->resolve($this->definitions->get($id));
+        $this->resolvingFinished($id);
+
+        return $resolved;
     }
 
     public function has(string $id): bool
@@ -186,5 +205,25 @@ final class Container implements ContainerInterface
         }
 
         return $this->get($rt->getName());
+    }
+
+    private function inProgress(string $id): bool
+    {
+        return in_array($id, $this->resolving, true);
+    }
+
+    private function resolvingStarted(string $id): void
+    {
+        $this->resolving[] = $id;
+    }
+
+    private function resolvingFinished(string $id): void
+    {
+        $index = array_search($id, $this->resolving, true);
+        if ($index === false) {
+            throw new ContainerException("Tried to finish resolving for '{$id}' that hasn't been started.");
+        }
+
+        unset($this->resolving[$index]);
     }
 }
