@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Tests\Norvica\Container\Integration;
 
 use Generator;
+use Norvica\Container\Definition\Env;
+use Norvica\Container\Definition\Ref;
 use PHPUnit\Framework\Assert;
 use PHPUnit\Framework\Attributes\DataProvider;
 use stdClass;
@@ -119,6 +121,19 @@ final class AnonymousFunctionTest extends BaseTestCase
                 ),
             ],
         ];
+
+        yield 'attributes' => [[
+            'c' => obj(stdClass::class),
+            'object' => static function (
+                #[Env('MATH_PI', type: 'float')] $b,
+                #[Ref('c')] $c,
+            ) {
+                Assert::assertEquals(3.14, $b, "Failed asserting parameter \$b equals 3.14.");
+                Assert::assertInstanceOf(stdClass::class, $c, "Failed asserting parameter \$c is instance of \stdClass.");
+
+                return new Result();
+            },
+        ]];
     }
 
     #[DataProvider('configuration')]

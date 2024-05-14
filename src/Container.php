@@ -28,6 +28,9 @@ final class Container implements ContainerInterface
      */
     private array $resolved = [];
 
+    /**
+     * @var string[]
+     */
     private array $resolving = [];
 
     public function __construct(
@@ -96,7 +99,7 @@ final class Container implements ContainerInterface
 
         if ($definition instanceof Env) {
             if (false !== ($value = getenv($definition->name))) {
-                return match ($definition->cast()) {
+                return match ($definition->type()) {
                     Env::STRING_ => $value,
                     Env::INT_ => (int) $value,
                     Env::FLOAT_ => (float) $value,
@@ -165,7 +168,6 @@ final class Container implements ContainerInterface
             $arguments,
         );
 
-        // TODO: attributes
         foreach ($reflection->getParameters() as $i => $rp) {
             if ($rp->isVariadic()) {
                 break;
@@ -187,10 +189,17 @@ final class Container implements ContainerInterface
 
     private function guess(ReflectionParameter $rp): mixed
     {
-        // TODO: improve error handling
+        if (null !== $ref = ($rp->getAttributes(Ref::class)[0] ?? null)) {
+            return $this->resolve($ref->newInstance());
+        }
+
+        if (null !== $env = ($rp->getAttributes(Env::class)[0] ?? null)) {
+            return $this->resolve($env->newInstance());
+        }
+
         $rt = $rp->getType();
 
-        $reference = "{$rp->getDeclaringClass()?->getName()}::{$rp->getDeclaringFunction()->getName()}([\${$rp->getName()}])";
+        $reference = "'\${$rp->getName()}' in '{$rp->getDeclaringClass()?->getName()}::{$rp->getDeclaringFunction()->getName()}()'";
 
         if ($rt === null) {
             throw new ContainerException("Cannot autowire parameter {$reference} without type being defined.");

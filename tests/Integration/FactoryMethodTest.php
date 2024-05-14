@@ -10,6 +10,7 @@ use stdClass;
 use Tests\Norvica\Container\BaseTestCase;
 use Tests\Norvica\Container\Fixtures\FactoryMethod\Fixture04149d77;
 use Tests\Norvica\Container\Fixtures\FactoryMethod\Fixture0c18ad61;
+use Tests\Norvica\Container\Fixtures\FactoryMethod\Fixture0fd8a6ce;
 use Tests\Norvica\Container\Fixtures\FactoryMethod\Fixture1c1913e2;
 use Tests\Norvica\Container\Fixtures\FactoryMethod\Fixture2b3c6dca;
 use Tests\Norvica\Container\Fixtures\FactoryMethod\Fixture426d9e13;
@@ -97,6 +98,14 @@ final class FactoryMethodTest extends BaseTestCase
                 ),
             ],
             Fixture1c1913e2::class,
+        ];
+
+        yield 'attributes' => [
+            [
+                'c' => obj(stdClass::class),
+                'object' => obj(Fixture0fd8a6ce::create(...)),
+            ],
+            Fixture0fd8a6ce::class,
         ];
     }
 

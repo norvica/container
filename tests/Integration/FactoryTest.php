@@ -16,6 +16,7 @@ use Tests\Norvica\Container\Fixtures\Factory\Factory6b883c6e;
 use Tests\Norvica\Container\Fixtures\Factory\Factory6e2823de;
 use Tests\Norvica\Container\Fixtures\Factory\Factory82ea8d38;
 use Tests\Norvica\Container\Fixtures\Factory\Factory8b7c1a7f;
+use Tests\Norvica\Container\Fixtures\Factory\Fixture07298337;
 use Tests\Norvica\Container\Fixtures\Result;
 use function Norvica\Container\env;
 use function Norvica\Container\obj;
@@ -113,6 +114,14 @@ final class FactoryTest extends BaseTestCase
                         'c' => ref('c'),
                     ],
                 ),
+            ],
+        ];
+
+        yield 'attributes' => [
+            [
+                'c' => obj(stdClass::class),
+                'factory' => obj(Fixture07298337::class),
+                'object' => obj([ref('factory'), 'create']),
             ],
         ];
     }

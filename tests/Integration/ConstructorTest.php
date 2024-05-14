@@ -17,6 +17,7 @@ use Tests\Norvica\Container\Fixtures\Constructor\Fixture69344dda;
 use Tests\Norvica\Container\Fixtures\Constructor\Fixture82858703;
 use Tests\Norvica\Container\Fixtures\Constructor\Fixture83d4d17f;
 use Tests\Norvica\Container\Fixtures\Constructor\Fixture87ad4655;
+use Tests\Norvica\Container\Fixtures\Constructor\Fixture9d90d88c;
 use function Norvica\Container\env;
 use function Norvica\Container\obj;
 use function Norvica\Container\ref;
@@ -103,6 +104,14 @@ final class ConstructorTest extends BaseTestCase
                 ),
             ],
             Fixture83d4d17f::class,
+        ];
+
+        yield 'attributes' => [
+            [
+                'c' => obj(stdClass::class),
+                'object' => obj(Fixture9d90d88c::class),
+            ],
+            Fixture9d90d88c::class,
         ];
     }
 

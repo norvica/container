@@ -10,9 +10,9 @@ use Norvica\Container\Definition\Env;
 use Norvica\Container\Definition\Val;
 
 if (!function_exists('Norvica\Container\env')) {
-    function env(string $name, string|int|float|bool|null $default = null): Env
+    function env(string $name, string|int|float|bool|null $default = null, string $type = Env::STRING_): Env
     {
-        return new Env($name, $default);
+        return new Env($name, $default, $type);
     }
 }
 

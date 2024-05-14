@@ -10,6 +10,7 @@ use stdClass;
 use Tests\Norvica\Container\BaseTestCase;
 use Tests\Norvica\Container\Fixtures\Call\Fixture0c7e1d40;
 use Tests\Norvica\Container\Fixtures\Call\Fixture39c3f3fc;
+use Tests\Norvica\Container\Fixtures\Call\Fixture43eb7e62;
 use Tests\Norvica\Container\Fixtures\Call\Fixture578dc31f;
 use Tests\Norvica\Container\Fixtures\Call\Fixture7ac9f19d;
 use Tests\Norvica\Container\Fixtures\Call\Fixture884de825;
@@ -87,6 +88,16 @@ final class CallTest extends BaseTestCase
                     ]),
             ],
             Fixture39c3f3fc::class,
+        ];
+
+        yield 'attributes' => [
+            [
+                'c' => obj(stdClass::class),
+                'object' => obj(Fixture43eb7e62::class)
+                    ->call('setB')
+                    ->call('setC'),
+            ],
+            Fixture43eb7e62::class,
         ];
     }
 
