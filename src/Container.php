@@ -63,8 +63,12 @@ final class Container implements ContainerInterface
         return $this->definitions->has($id);
     }
 
-    private function resolve(Val|Ref|Obj|Env $definition): mixed
+    private function resolve(mixed $definition): mixed
     {
+        if (is_array($definition)) {
+            return array_map(fn (mixed $item) => $this->resolve($item), $definition);
+        }
+
         if ($definition instanceof Val) {
             return ($definition->value instanceof Env)
                 ? $this->resolve($definition->value)
@@ -88,31 +92,35 @@ final class Container implements ContainerInterface
             return $this->resolved[$definition->id] ?? ($this->resolved[$definition->id] = $this->get($definition->id));
         }
 
-        // pure class name suggests we just use a constructor
-        if (is_string($definition->instantiator) && class_exists($definition->instantiator)) {
-            $rc = new ReflectionClass($definition->instantiator);
-            if ($rc->hasMethod('__construct')) {
-                $parameters = $this->parameters($rc->getMethod('__construct'), $definition->arguments);
+        if ($definition instanceof Obj) {
+            // pure class name suggests we just use a constructor
+            if (is_string($definition->instantiator) && class_exists($definition->instantiator)) {
+                $rc = new ReflectionClass($definition->instantiator);
+                if ($rc->hasMethod('__construct')) {
+                    $parameters = $this->parameters($rc->getMethod('__construct'), $definition->arguments);
+                } else {
+                    $parameters = [];
+                }
+
+                $instance = new ($definition->instantiator)(...$parameters);
             } else {
-                $parameters = [];
+                // call factory method
+                $closure = $this->closure($definition->instantiator);
+                $parameters = $this->parameters(new ReflectionFunction($closure), $definition->arguments);
+                $instance = $closure(...$parameters);
             }
 
-            $instance = new ($definition->instantiator)(...$parameters);
-        } else {
-            // call factory method
-            $closure = $this->closure($definition->instantiator);
-            $parameters = $this->parameters(new ReflectionFunction($closure), $definition->arguments);
-            $instance = $closure(...$parameters);
+            // perform defined calls on instance
+            foreach ($definition->calls as $call) {
+                $closure = $this->closure([$instance, $call->method]);
+                $parameters = $this->parameters(new ReflectionFunction($closure), $call->arguments);
+                $closure(...$parameters);
+            }
+
+            return $instance;
         }
 
-        // perform defined calls on instance
-        foreach ($definition->calls as $call) {
-            $closure = $this->closure([$instance, $call->method]);
-            $parameters = $this->parameters(new ReflectionFunction($closure), $call->arguments);
-            $closure(...$parameters);
-        }
-
-        return $instance;
+        return $definition;
     }
 
     private function closure(Closure|callable|array|string $callable): Closure
@@ -133,11 +141,12 @@ final class Container implements ContainerInterface
                     throw new ContainerException("Nested 'obj' definitions are not supported.");
                 }
 
-                return $this->process($argument);
+                return $this->resolve($argument);
             },
             $arguments,
         );
 
+        // TODO: attributes
         foreach ($reflection->getParameters() as $i => $rp) {
             if ($rp->isVariadic()) {
                 break;
@@ -155,19 +164,6 @@ final class Container implements ContainerInterface
         }
 
         return $resolved;
-    }
-
-    private function process(mixed $definition): mixed
-    {
-        if (($definition instanceof Ref) || ($definition instanceof Val) || ($definition instanceof Env)) {
-            return $this->resolve($definition);
-        }
-
-        if (is_array($definition)) {
-            return array_map(fn (mixed $item) => $this->process($item), $definition);
-        }
-
-        return $definition;
     }
 
     private function guess(ReflectionParameter $rp): mixed

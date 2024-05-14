@@ -106,7 +106,8 @@ final class Configurator
             if (($definition instanceof Obj)
                 || ($definition instanceof Val)
                 || ($definition instanceof Ref)
-                || ($definition instanceof Env)) {
+                || ($definition instanceof Env)
+                || is_array($definition)) {
                 $this->definitions->add($id, $definition);
 
                 continue;
