@@ -11,6 +11,7 @@ use Norvica\Container\Definition\Ref;
 use Norvica\Container\Definition\Val;
 use Norvica\Container\Definition\Env;
 use Norvica\Container\Exception\ContainerException;
+use Psr\Container\ContainerInterface;
 
 final class Configurator
 {
@@ -87,6 +88,11 @@ final class Configurator
     public function definitions(): Definitions
     {
         return $this->definitions;
+    }
+
+    public function container(): ContainerInterface
+    {
+        return new Container($this->definitions());
     }
 
     private function array(array $configuration): void
