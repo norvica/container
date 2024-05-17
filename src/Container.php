@@ -69,12 +69,14 @@ final class Container implements ContainerInterface
             }
 
             $resolved = $this->resolve(new Obj($id));
+            $this->resolved[$id] = $resolved;
             $this->resolvingFinished($id);
 
             return $resolved;
         }
 
         $resolved = $this->resolve($this->definitions->get($id));
+        $this->resolved[$id] = $resolved;
         $this->resolvingFinished($id);
 
         return $resolved;
