@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Norvica\Container;
 
 use Closure;
+use Norvica\Container\Compiler\ContainerCompiler;
 use Norvica\Container\Definition\Definitions;
 use Norvica\Container\Definition\Obj;
 use Norvica\Container\Definition\Ref;
+use Norvica\Container\Definition\Run;
 use Norvica\Container\Definition\Val;
 use Norvica\Container\Definition\Env;
 use Norvica\Container\Exception\ContainerException;
@@ -16,17 +18,26 @@ use Psr\Container\ContainerInterface;
 final class Configurator
 {
     private Definitions $definitions;
+    private ContainerInterface|null $container = null;
+    private string|null $filepath;
+    private bool $compiled;
 
     public function __construct(
         Definitions|null $definitions = null,
     ) {
         $this->definitions = $definitions ?: new Definitions();
+        $this->filepath = null;
+        $this->compiled = false;
     }
 
     public function val(
         string $id,
         string|int|float|bool|null $value,
     ): self {
+        if ($this->compiled) {
+            throw new ContainerException("Can't add definition '{$id}' as container is already compiled.");
+        }
+
         $this->definitions->add($id, new Val($value));
 
         return $this;
@@ -37,13 +48,35 @@ final class Configurator
         callable|array|string $instantiator,
         mixed ...$arguments,
     ): Obj {
+        if ($this->compiled) {
+            throw new ContainerException("Can't add definition '{$id}' as container is already compiled.");
+        }
+
         $this->definitions->add($id, $obj = new Obj($instantiator, ...$arguments));
 
         return $obj;
     }
 
+    public function run(
+        string $id,
+        callable|array|string $instantiator,
+        mixed ...$arguments,
+    ): self {
+        if ($this->compiled) {
+            throw new ContainerException("Can't add definition '{$id}' as container is already compiled.");
+        }
+
+        $this->definitions->add($id, new Run($instantiator, ...$arguments));
+
+        return $this;
+    }
+
     public function ref(string $id, string $ref): self
     {
+        if ($this->compiled) {
+            throw new ContainerException("Can't add definition '{$id}' as container is already compiled.");
+        }
+
         $this->definitions->add($id, new Ref($ref));
 
         return $this;
@@ -51,6 +84,10 @@ final class Configurator
 
     public function load(Definitions|callable|array|string $configuration): self
     {
+        if ($this->compiled) {
+            throw new ContainerException("Can't load configuration as container is already compiled.");
+        }
+
         if ($configuration instanceof Definitions) {
             $this->definitions->merge($configuration);
 
@@ -85,14 +122,35 @@ final class Configurator
         );
     }
 
-    public function definitions(): Definitions
+    public function compile(string $filepath, bool $force = false): self
     {
-        return $this->definitions;
+        if ($this->compiled && !$force) {
+            throw new ContainerException("Can't compile container to '{$filepath}' as it's already compiled to '{$this->filepath}'.");
+        }
+
+        if (is_readable($filepath)) {
+            if ($force) {
+                return $this->write($filepath);
+            }
+
+            return $this->read($filepath);
+        }
+
+        return $this->write($filepath);
     }
 
     public function container(): ContainerInterface
     {
-        return new Container($this->definitions());
+        if ($this->container) {
+            return $this->container;
+        }
+
+        return $this->container = new Container($this->definitions);
+    }
+
+    public function definitions(): Definitions
+    {
+        return $this->definitions;
     }
 
     private function array(array $configuration): void
@@ -100,7 +158,7 @@ final class Configurator
         foreach ($configuration as $id => $definition) {
             // implicit anonymous function factory definition
             if ($definition instanceof Closure) {
-                $definition = new Obj(instantiator: $definition);
+                $definition = new Run(instantiator: $definition);
             }
 
             // implicit scalar value definition
@@ -110,6 +168,7 @@ final class Configurator
 
             // explicit definition
             if (($definition instanceof Obj)
+                || ($definition instanceof Run)
                 || ($definition instanceof Val)
                 || ($definition instanceof Ref)
                 || ($definition instanceof Env)
@@ -126,5 +185,22 @@ final class Configurator
                 )
             );
         }
+    }
+
+    private function write(string $filepath): self
+    {
+        $compiler = new ContainerCompiler($this->definitions);
+        file_put_contents($filepath, $compiler->compile());
+
+        return $this->read($filepath);
+    }
+
+    private function read(string $filepath): self
+    {
+        $this->filepath = $filepath;
+        $this->compiled = true;
+        $this->container = require $filepath;
+
+        return $this;
     }
 }

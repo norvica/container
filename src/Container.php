@@ -9,18 +9,23 @@ use Norvica\Container\Definition\Definitions;
 use Norvica\Container\Definition\Env;
 use Norvica\Container\Definition\Obj;
 use Norvica\Container\Definition\Ref;
+use Norvica\Container\Definition\Run;
 use Norvica\Container\Definition\Val;
 use Norvica\Container\Exception\CircularDependencyException;
 use Norvica\Container\Exception\ContainerException;
 use Norvica\Container\Exception\NotFoundException;
+use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
+use Psr\Container\NotFoundExceptionInterface;
 use ReflectionClass;
 use ReflectionFunction;
 use ReflectionMethod;
 use ReflectionNamedType;
 use ReflectionParameter;
 
-// TODO: compiling
+/**
+ * @internal
+ */
 final class Container implements ContainerInterface
 {
     /**
@@ -42,7 +47,10 @@ final class Container implements ContainerInterface
      * @template T
      * @param class-string<T>|string $id
      *
-     * @return T
+     * @return T|mixed
+     *
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
      */
     public function get(string $id): mixed
     {
@@ -144,6 +152,14 @@ final class Container implements ContainerInterface
             return $instance;
         }
 
+        if ($definition instanceof Run) {
+            // execute closure
+            $closure = $this->closure($definition->instantiator);
+            $parameters = $this->parameters(new ReflectionFunction($closure), $definition->arguments);
+
+            return $closure(...$parameters);
+        }
+
         return $definition;
     }
 
@@ -159,16 +175,7 @@ final class Container implements ContainerInterface
 
     private function parameters(ReflectionMethod|ReflectionFunction $reflection, array $arguments): array
     {
-        $resolved = array_map(
-            function (mixed $argument) {
-                if ($argument instanceof Obj) {
-                    throw new ContainerException("Nested 'obj' definitions are not supported.");
-                }
-
-                return $this->resolve($argument);
-            },
-            $arguments,
-        );
+        $resolved = array_map($this->resolve(...), $arguments);
 
         foreach ($reflection->getParameters() as $i => $rp) {
             if ($rp->isVariadic()) {

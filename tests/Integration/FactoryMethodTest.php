@@ -113,7 +113,9 @@ final class FactoryMethodTest extends BaseTestCase
     public function test(array $configuration, string $expectation): void
     {
         $container = $this->container($configuration);
-
         $this->assertInstanceOf($expectation, $container->get('object'));
+
+        $compiled = $this->compiled($configuration);
+        $this->assertInstanceOf($expectation, $compiled->get('object'));
     }
 }

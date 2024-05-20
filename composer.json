@@ -1,6 +1,6 @@
 {
     "name": "norvica/container",
-    "description": "PHP dependency injection container.",
+    "description": "Pragmatic PHP dependency injection container.",
     "type": "library",
     "license": "MIT",
     "keywords": [

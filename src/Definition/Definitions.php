@@ -9,12 +9,12 @@ use Norvica\Container\Exception\ContainerException;
 final class Definitions
 {
     /**
-     * @var array<string, Val|Obj|Ref|Env|array>
+     * @var array<string, Val|Obj|Run|Ref|Env|array>
      */
     private array $definitions;
 
     /**
-     * @param array<string, Val|Obj|Ref|Env|array> $definitions
+     * @param array<string, Val|Obj|Run|Ref|Env|array> $definitions
      */
     public function __construct(
         array $definitions = [],
@@ -41,14 +41,14 @@ final class Definitions
         }
     }
 
-    public function add(string $id, Val|Obj|Ref|Env|array $definition): self
+    public function add(string $id, Val|Obj|Run|Ref|Env|array $definition): self
     {
         $this->definitions[$id] = $definition;
 
         return $this;
     }
 
-    public function get(string $id): Val|Obj|Ref|Env|array
+    public function get(string $id): Val|Obj|Run|Ref|Env|array
     {
         return $this->definitions[$id] ?? throw new \RuntimeException("Definition '{$id}' doesn't exist.");
     }
@@ -66,7 +66,7 @@ final class Definitions
     }
 
     /**
-     * @return array<string, Val|Obj|Ref|Env|array>
+     * @return array<string, Val|Obj|Run|Ref|Env|array>
      */
     public function all(): array
     {

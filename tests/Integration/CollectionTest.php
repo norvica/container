@@ -6,6 +6,7 @@ namespace Tests\Norvica\Container\Integration;
 
 use Generator;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Psr\Container\ContainerInterface;
 use stdClass;
 use Tests\Norvica\Container\BaseTestCase;
 use Tests\Norvica\Container\Fixtures\FactoryMethod\Fixture1c1913e2;
@@ -18,7 +19,7 @@ final class CollectionTest extends BaseTestCase
 {
     public function testTopLevel(): void
     {
-        $container = $this->container([
+        $configuration = [
             'd' => 'd',
             'collection' => [
                 'a' => val('a'),
@@ -26,19 +27,23 @@ final class CollectionTest extends BaseTestCase
                 'c' => obj(stdClass::class),
                 'd' => ref('d'),
             ],
-        ]);
+        ];
 
-        $collection = $container->get('collection');
+        $assert = function (ContainerInterface $container) {
+            $collection = $container->get('collection');
+            $this->assertEquals('a', $collection['a']);
+            $this->assertEquals(3.14, $collection['b']);
+            $this->assertInstanceOf(stdClass::class, $collection['c']);
+            $this->assertEquals('d', $collection['d']);
+        };
 
-        $this->assertEquals('a', $collection['a']);
-        $this->assertEquals(3.14, $collection['b']);
-        $this->assertInstanceOf(stdClass::class, $collection['c']);
-        $this->assertEquals('d', $collection['d']);
+        $assert($this->container($configuration));
+        $assert($this->compiled($configuration));
     }
 
     public function testNested(): void
     {
-        $container = $this->container([
+        $configuration = [
             'd' => 'd',
             'collection' => [
                 'nested' => [
@@ -48,13 +53,17 @@ final class CollectionTest extends BaseTestCase
                     'd' => ref('d'),
                 ],
             ],
-        ]);
+        ];
 
-        $collection = $container->get('collection')['nested'];
+        $assert = function (ContainerInterface $container) {
+            $collection = $container->get('collection')['nested'];
+            $this->assertEquals('a', $collection['a']);
+            $this->assertEquals(3.14, $collection['b']);
+            $this->assertInstanceOf(stdClass::class, $collection['c']);
+            $this->assertEquals('d', $collection['d']);
+        };
 
-        $this->assertEquals('a', $collection['a']);
-        $this->assertEquals(3.14, $collection['b']);
-        $this->assertInstanceOf(stdClass::class, $collection['c']);
-        $this->assertEquals('d', $collection['d']);
+        $assert($this->container($configuration));
+        $assert($this->compiled($configuration));
     }
 }

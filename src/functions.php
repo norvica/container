@@ -36,3 +36,19 @@ if (!function_exists('Norvica\Container\val')) {
         return new Val($value);
     }
 }
+
+if (!function_exists('Norvica\Container\_env')) {
+    function _env(string $name, string|int|float|bool|null $default = null, string $type = Env::STRING_): string|int|float|bool|null
+    {
+        if (false === $value = getenv($name)) {
+            return $default;
+        }
+
+        return match ($type) {
+            Env::STRING_ => $value,
+            Env::INT_ => (int) $value,
+            Env::FLOAT_ => (float) $value,
+            Env::BOOL_ => filter_var($value, FILTER_VALIDATE_BOOL),
+        };
+    }
+}

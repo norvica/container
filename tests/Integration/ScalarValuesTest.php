@@ -32,11 +32,13 @@ final class ScalarValuesTest extends BaseTestCase
     }
 
     #[DataProvider('configuration')]
-    public function test(array $configuration, array $expectation): void
+    public function testCold(array $configuration, array $expectation): void
     {
         [$id, $value] = $expectation;
         $container = $this->container($configuration);
-
         $this->assertEquals($value, $container->get($id));
+
+        $compiled = $this->compiled($configuration);
+        $this->assertEquals($value, $compiled->get($id));
     }
 }
