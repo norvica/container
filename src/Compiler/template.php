@@ -11,7 +11,7 @@ return new class() implements \Psr\Container\ContainerInterface {
     public function get(string $id)
     {
         if (isset($this->resolved[$id])) {
-            return $id;
+            return $this->resolved[$id];
         }
 
         $method = "_{$this->map[$id]}";

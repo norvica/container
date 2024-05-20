@@ -137,10 +137,34 @@ final class AnonymousFunctionTest extends BaseTestCase
     }
 
     #[DataProvider('configuration')]
-    public function test(array $configuration): void
+    public function testCold(array $configuration): void
     {
         $container = $this->container($configuration);
-
         $this->assertInstanceOf(Result::class, $container->get('object'));
+
+        $compiled = $this->compiled($configuration);
+        $this->assertInstanceOf(Result::class, $compiled->get('object'));
+    }
+
+    public static function files(): Generator
+    {
+        yield 'array' => [__DIR__ . '/../Fixtures/AnonymousFunction/array.php'];
+        yield 'function' => [__DIR__ . '/../Fixtures/AnonymousFunction/function.php'];
+    }
+
+    #[DataProvider('files')]
+    public function testCompiled(string $file): void
+    {
+        $compiled = $this->compiled($file);
+
+        $this->assertEquals('foo', $compiled->get('a'));
+        $this->assertEquals('bar', $compiled->get('b'));
+        $this->assertEquals('foobar', $compiled->get('c'));
+        $this->assertEquals('ab', $compiled->get('d'));
+
+        $e = $compiled->get('e');
+        $this->assertInstanceOf(stdClass::class, $e);
+        $this->assertEquals('foo', $e->a);
+        $this->assertEquals('bar', $e->b);
     }
 }
