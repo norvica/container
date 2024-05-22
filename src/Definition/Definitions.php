@@ -11,7 +11,7 @@ final class Definitions
     /**
      * @var array<string, Val|Obj|Run|Ref|Env|array>
      */
-    private array $definitions;
+    private array $definitions = [];
 
     /**
      * @param array<string, Val|Obj|Run|Ref|Env|array> $definitions

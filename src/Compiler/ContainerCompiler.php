@@ -62,11 +62,14 @@ final class ContainerCompiler
         $this->parser = (new ParserFactory())->createForNewestSupportedVersion();
     }
 
-    public function compile(): string
+    public function compile(string $class = 'Container'): string
     {
         $this->ast = $this->parser->parse(file_get_contents(__DIR__ . '/template.php'));
-        $body = &$this->ast[1]->expr->class->stmts;
-        $map = &$body[0]->props[0]->default->items;
+//        echo (new \PhpParser\NodeDumper())->dump($this->ast)."\n";die;
+
+        $this->ast[1]->name = new Identifier(name: $class);
+        $body = &$this->ast[1]->stmts;
+        $map = &$body[0]->consts[0]->value->items;
 
         foreach ($this->map as $id => $hash) {
             $definition = $this->definitions->get($id);
@@ -220,8 +223,6 @@ final class ContainerCompiler
         if (is_string($definition->instantiator)
             && class_exists($definition->instantiator)) {
             // Foo::class
-            // 'Some\function'
-            // 'Foo::bar'
             $rc = new ReflectionClass($definition->instantiator);
             $instantiation = new Expr\New_(
                 class: new FullyQualified(name: $definition->instantiator),
@@ -338,9 +339,12 @@ final class ContainerCompiler
             if ($rf->isAnonymous()) {
                 // fn() => new \stdClass()
                 // function() => {return new \stdClass();}
-                // TODO: allow only static closures
-                // TODO: don't allow 'use'
                 $function = $this->anonymous($rf, $id);
+                if (!empty($function->uses)) {
+                    throw new ContainerException("Closure defining 'use' cannot be compiled.");
+                }
+
+                $function->static = true;
 
                 return new FuncCall(
                     name: $function,

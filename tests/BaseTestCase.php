@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Norvica\Container;
 
-use Norvica\Container\Compiler\ContainerCompiler;
 use Norvica\Container\Configurator;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
@@ -33,7 +32,7 @@ abstract class BaseTestCase extends TestCase
         }
     }
 
-    protected function container(array $configuration): ContainerInterface
+    protected function container(array|string $configuration): ContainerInterface
     {
         $configurator = new Configurator();
         $configurator->load($configuration);
@@ -47,9 +46,8 @@ abstract class BaseTestCase extends TestCase
         $configurator->load($configuration);
 
         $hash = bin2hex(random_bytes(2));
-        $filepath = __DIR__ . "/../var/compiled_{$hash}.php";
-        $this->files[] = $filepath;
+        $this->files[] = __DIR__ . "/../var/Container{$hash}.php";
 
-        return $configurator->compile($filepath)->container();
+        return $configurator->snapshot(__DIR__ . "/../var", "Container{$hash}")->container();
     }
 }

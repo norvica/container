@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Norvica\Container;
 
 use Closure;
+use Norvica\Container\Compiler\Stub;
 use Norvica\Container\Definition\Definitions;
 use Norvica\Container\Definition\Env;
 use Norvica\Container\Definition\Obj;
@@ -40,6 +41,7 @@ final class Container implements ContainerInterface
 
     public function __construct(
         private readonly Definitions $definitions,
+        private readonly ContainerInterface|null $compiled = null,
     ) {
     }
 
@@ -59,6 +61,10 @@ final class Container implements ContainerInterface
             return $this->resolved[$id];
         }
 
+        if ($this->compiled?->has($id)) {
+            return $this->compiled->get($id);
+        }
+
         if ($this->inProgress($id)) {
             throw new CircularDependencyException(
                 sprintf(
@@ -71,7 +77,7 @@ final class Container implements ContainerInterface
         $this->resolvingStarted($id);
 
         // if ID is a class name, try to construct it, even if it's not registered explicitly
-        if (!$this->has($id)) {
+        if (!$this->definitions->has($id)) {
             if (!class_exists($id)) {
                 throw new NotFoundException("Definition '{$id}' not found.");
             }
@@ -92,7 +98,7 @@ final class Container implements ContainerInterface
 
     public function has(string $id): bool
     {
-        return $this->definitions->has($id);
+        return $this->definitions->has($id) || $this->compiled?->has($id);
     }
 
     private function resolve(mixed $definition): mixed
