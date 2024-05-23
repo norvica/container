@@ -27,7 +27,7 @@ final class CombinedTest extends BaseTestCase
         $this->assertions($container);
     }
 
-    public function testCompiled()
+    public function testCompiled(): void
     {
         $container = $this->compiled(__DIR__ . '/../Fixtures/Combined/container.php');
         $this->assertions($container);

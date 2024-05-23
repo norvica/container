@@ -17,26 +17,29 @@ use Psr\Container\ContainerInterface;
 
 final class Configurator
 {
+    private const INITIALIZING = 0;
+    private const COMPILING = 1;
+    private const LOADING = 2;
+    private const INITIALIZED  = 4;
+
     private Definitions $definitions;
     private ContainerInterface|null $container = null;
-    private string|null $dir;
-    private string|null $class;
-    private bool $locked;
+    private string|null $class = null;
+    private string|null $filename = null;
+    private int $state;
 
     public function __construct(
         Definitions|null $definitions = null,
     ) {
         $this->definitions = $definitions ?: new Definitions();
-        $this->dir = null;
-        $this->locked = false;
-        $this->class = 'Container';
+        $this->state = self::INITIALIZING;
     }
 
     public function val(
         string $id,
         string|int|float|bool|null $value,
     ): self {
-        if ($this->locked) {
+        if (!$this->configurable()) {
             throw new ContainerException("Can't add definition '{$id}' as container is locked.");
         }
 
@@ -50,7 +53,7 @@ final class Configurator
         callable|array|string $instantiator,
         mixed ...$arguments,
     ): Obj {
-        if ($this->locked) {
+        if (!$this->configurable()) {
             throw new ContainerException("Can't add definition '{$id}' as container is locked.");
         }
 
@@ -64,7 +67,7 @@ final class Configurator
         callable|array|string $instantiator,
         mixed ...$arguments,
     ): self {
-        if ($this->locked) {
+        if (!$this->configurable()) {
             throw new ContainerException("Can't add definition '{$id}' as container is locked.");
         }
 
@@ -75,7 +78,7 @@ final class Configurator
 
     public function ref(string $id, string $ref): self
     {
-        if ($this->locked) {
+        if (!$this->configurable()) {
             throw new ContainerException("Can't add definition '{$id}' as container is locked.");
         }
 
@@ -84,14 +87,27 @@ final class Configurator
         return $this;
     }
 
-    public function load(Definitions|callable|array|string $configuration): self
+    public function snapshot(string $dir, string $class = 'Container'): self
     {
-        if ($this->locked) {
-            throw new ContainerException("Can't load definitions when container is locked.");
+        if ($this->state > self::INITIALIZING) {
+            throw new ContainerException("Can't re-define snapshot file '{$this->filename}'.");
         }
 
-        if (class_exists($this->class)) {
+        $this->filename = $dir . DIRECTORY_SEPARATOR . $class . '.php';
+        $this->state = !file_exists($this->filename) ? self::COMPILING : self::LOADING;
+        $this->class = $class;
+
+        return $this;
+    }
+
+    public function load(Definitions|callable|array|string $configuration): self
+    {
+        if ($this->state === self::LOADING) {
             return $this;
+        }
+
+        if ($this->state === self::INITIALIZED) {
+            throw new ContainerException("Can't load definitions when container is warm.");
         }
 
         if ($configuration instanceof Definitions) {
@@ -101,7 +117,7 @@ final class Configurator
         }
 
         if (is_string($configuration)) {
-            if (!is_readable($configuration)) {
+            if (!file_exists($configuration)) {
                 throw new ContainerException("Cannot load container configuration from '{$configuration}'. File doesn't exist or isn't readable.");
             }
 
@@ -128,32 +144,26 @@ final class Configurator
         );
     }
 
-    public function snapshot(string $dir, string $class = 'Container'): self
-    {
-        if ($this->locked) {
-            throw new ContainerException("Can't compile container to '{$dir}' as it's locked.");
-        }
-
-        $this->dir = $dir;
-        $this->class = $class;
-
-        return $this;
-    }
-
     public function container(): ContainerInterface
     {
         if ($this->container) {
             return $this->container;
         }
 
-        if ($this->dir) {
-            $this->compile();
-            $this->locked = true;
-
-            return $this->container;
+        if ($this->state === self::COMPILING) {
+            $compiler = new ContainerCompiler($this->definitions);
+            file_put_contents($this->filename, $compiler->compile($this->class)); // TODO: use atomic file write
+            $this->state = self::LOADING;
         }
 
-        $this->locked = true;
+        if ($this->state === self::LOADING) {
+            require_once $this->filename;
+            $this->state = self::INITIALIZED;
+
+            return $this->container = new Container(new Definitions(), new ($this->class)());
+        }
+
+        $this->state = self::INITIALIZED;
 
         return $this->container = new Container($this->definitions);
     }
@@ -161,6 +171,11 @@ final class Configurator
     public function definitions(): Definitions
     {
         return $this->definitions;
+    }
+
+    public function configurable(): bool
+    {
+        return $this->state < self::LOADING;
     }
 
     private function array(array $configuration): void
@@ -195,20 +210,5 @@ final class Configurator
                 )
             );
         }
-    }
-
-    private function compile(): void
-    {
-        if (!class_exists($this->class)) {
-            $filename = $this->dir . DIRECTORY_SEPARATOR . $this->class . '.php';
-            if (!file_exists($filename)) {
-                $compiler = new ContainerCompiler($this->definitions);
-                file_put_contents($filename, $compiler->compile($this->class)); // TODO: use atomic file write
-            }
-
-            require $filename;
-        }
-
-        $this->container = new Container(new Definitions(), new ($this->class)());
     }
 }

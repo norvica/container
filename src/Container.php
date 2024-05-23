@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Norvica\Container;
 
 use Closure;
-use Norvica\Container\Compiler\Stub;
 use Norvica\Container\Definition\Definitions;
 use Norvica\Container\Definition\Env;
 use Norvica\Container\Definition\Obj;
