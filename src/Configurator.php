@@ -26,6 +26,7 @@ final class Configurator
     private ContainerInterface|null $container = null;
     private string|null $class = null;
     private string|null $filename = null;
+    private string|null $dir = null;
     private int $state;
 
     public function __construct(
@@ -94,6 +95,7 @@ final class Configurator
         }
 
         $this->filename = $dir . DIRECTORY_SEPARATOR . $class . '.php';
+        $this->dir = $dir;
         $this->state = !file_exists($this->filename) ? self::COMPILING : self::LOADING;
         $this->class = $class;
 
@@ -152,7 +154,7 @@ final class Configurator
 
         if ($this->state === self::COMPILING) {
             $compiler = new ContainerCompiler($this->definitions);
-            file_put_contents($this->filename, $compiler->compile($this->class)); // TODO: use atomic file write
+            $this->write($this->dir, $this->filename, $compiler->compile($this->class));
             $this->state = self::LOADING;
         }
 
@@ -209,6 +211,32 @@ final class Configurator
                     get_debug_type($definition),
                 )
             );
+        }
+    }
+
+    private function write(string $dir, string $filename, string $content): void
+    {
+        if (!is_dir($dir)) {
+            if (!mkdir($dir, recursive: true) && !is_dir($dir)) {
+                throw new ContainerException("Failed to create directory '{$dir}'.");
+            }
+        }
+
+        if (false === $temp = tempnam($dir, basename($filename))) {
+            throw new ContainerException("Failed to write temporary file to '{$dir}'.");
+        }
+
+        if (!chmod($temp, 0666)) {
+            throw new ContainerException("Cannot change permissions for '{$temp}'.");
+        }
+
+        if (!file_put_contents($temp, $content)) {
+            throw new ContainerException("Failed to write temporary file '{$temp}'.");
+        }
+
+        if (!rename($temp, $filename)) {
+            unlink($temp);
+            throw new ContainerException("Failed to rename temporary file '{$temp}' to '{$filename}'.");
         }
     }
 }
