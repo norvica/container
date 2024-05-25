@@ -31,7 +31,6 @@ final class CombinedTest extends BaseTestCase
     public function testCompiled(): void
     {
         $container = $this->compiled(__DIR__ . '/../Fixtures/Combined/container.php');
-        $this->files = [];
         $this->assertions($container);
     }
 
