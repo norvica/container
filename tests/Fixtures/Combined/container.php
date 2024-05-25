@@ -5,6 +5,8 @@ declare(strict_types=1);
 use Norvica\Container\Definition\Env;
 use Norvica\Container\Definition\Ref;
 use Tests\Norvica\Container\Fixtures\Combined\Connection;
+use Tests\Norvica\Container\Fixtures\Combined\DateRange;
+use Tests\Norvica\Container\Fixtures\Combined\Factory;
 use Tests\Norvica\Container\Fixtures\Combined\Logger;
 use Tests\Norvica\Container\Fixtures\Combined\LoggerInterface;
 use Tests\Norvica\Container\Fixtures\Combined\UserController;
@@ -12,6 +14,7 @@ use Tests\Norvica\Container\Fixtures\Combined\UserService;
 use function Norvica\Container\env;
 use function Norvica\Container\obj;
 use function Norvica\Container\ref;
+use function Norvica\Container\run;
 use function Norvica\Container\val;
 
 return [
@@ -35,5 +38,12 @@ return [
         ->call('setTime', 0, 0),
     'logger' => obj(Logger::class, name: 'app'),
     LoggerInterface::class => ref('logger'),
+    'std.factory' => obj(Factory::class),
+    'std.instance' => run([ref('std.factory'), 'create'], ref('unix')),
+    'dates' => [
+        obj(DateTime::class, '1999-12-31'),
+        run(DateTime::createFromFormat(...), 'Y-m-d', '2000-01-01'),
+    ],
+    DateRange::class => obj(DateRange::class, ref('dates')),
     // TODO: add more
 ];

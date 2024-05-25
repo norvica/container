@@ -16,17 +16,22 @@ use PhpParser\Node;
 use PhpParser\Node\Arg;
 use PhpParser\Node\Expr;
 use PhpParser\Node\Expr\Array_;
+use PhpParser\Node\Expr\ArrayDimFetch;
 use PhpParser\Node\Expr\ArrayItem;
 use PhpParser\Node\Expr\ArrowFunction;
 use PhpParser\Node\Expr\Assign;
+use PhpParser\Node\Expr\BinaryOp\Coalesce;
 use PhpParser\Node\Expr\ClassConstFetch;
 use PhpParser\Node\Expr\Closure as Closure_;
 use PhpParser\Node\Expr\FuncCall;
 use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Expr\PropertyFetch;
 use PhpParser\Node\Expr\StaticCall;
 use PhpParser\Node\Expr\Variable;
 use PhpParser\Node\Identifier;
+use PhpParser\Node\Name;
 use PhpParser\Node\Name\FullyQualified;
+use PhpParser\Node\Param;
 use PhpParser\Node\Scalar\Int_;
 use PhpParser\Node\Scalar\String_;
 use PhpParser\Node\Stmt\ClassMethod;
@@ -37,13 +42,14 @@ use PhpParser\NodeVisitor;
 use PhpParser\Parser;
 use PhpParser\ParserFactory;
 use PhpParser\PrettyPrinter\Standard;
+use Psr\Container\ContainerInterface;
 use ReflectionClass;
 use ReflectionFunction;
 use ReflectionMethod;
 use ReflectionNamedType;
 use ReflectionParameter;
 
-final class ContainerCompiler
+final class Compiler
 {
     private readonly Definitions $definitions;
     private readonly Parser $parser;
@@ -73,35 +79,14 @@ final class ContainerCompiler
 
         foreach ($this->map as $id => $hash) {
             $definition = $this->definitions->get($id);
-            $body[] = new ClassMethod(
-                name: "_{$hash}",
-                subNodes: [
-                    'flags' => ReflectionMethod::IS_PRIVATE,
-                    'params' => [],
-                    'stmts' => [
-                        new Return_(
-                            expr: $this->definition($definition, $id),
-                        ),
-                    ],
-                ],
-            );
+            $body[] = $this->method($id, $hash, $this->definition($definition, $id));
         }
 
         while ($this->postponed) {
             $id = array_shift($this->postponed);
-            $body[] = new ClassMethod(
-                name: "_{$this->map[$id]}",
-                subNodes: [
-                    'flags' => ReflectionMethod::IS_PRIVATE,
-                    'params' => [],
-                    'stmts' => [
-                        new Return_(
-                            expr: $this->definition(new Obj($id), $id),
-                        ),
-                    ],
-                ],
-            );
+            $body[] = $this->method($id, $this->map[$id], $this->definition(new Obj($id), $id));
         }
+        // $this->definition(new Obj($id), $id)
 
         foreach ($this->map as $id => $hash) {
             $map[] = new ArrayItem(
@@ -186,16 +171,23 @@ final class ContainerCompiler
 
     private function ref(Ref $definition): Expr
     {
-        return new MethodCall(
-            var: new Variable(name: 'this'),
-            name: new Identifier(name: 'get'),
-            args: [
-                new Node\Arg(
-                    value: new String_(
-                        value: $definition->id,
+        return new Coalesce(
+            left: new ArrayDimFetch(
+                var: new PropertyFetch(
+                    var: new Variable(name: 'container'),
+                    name: new Identifier(name: 'resolved'),
+                ),
+                dim: new String_(value: $definition->id),
+            ),
+            right: new StaticCall(
+                class: new Name(name: 'self'),
+                name: "_{$this->map[$definition->id]}",
+                args: [
+                    new Arg(
+                        value: new Variable(name: 'container'),
                     ),
-                )
-            ],
+                ],
+            )
         );
     }
 
@@ -271,9 +263,20 @@ final class ContainerCompiler
         return new FuncCall(
             name: new Closure_(
                 subNodes: [
+                    'static' => true,
+                    'params' => [
+                        new Param(
+                            var: new Variable(name: 'container'),
+                        ),
+                    ],
                     'stmts' => $stmts,
                 ],
-            )
+            ),
+            args: [
+                new Arg(
+                    value: new Variable(name: 'container'),
+                ),
+            ],
         );
     }
 
@@ -500,5 +503,35 @@ final class ContainerCompiler
         $this->postponed[] = $id;
 
         return $this->definition(new Ref($id));
+    }
+
+    private function method(string $id, string $hash, Expr $definition): ClassMethod
+    {
+        return new ClassMethod(
+            name: "_{$hash}",
+            subNodes: [
+                'flags' => 12,
+                'params' => [
+                    new Param(
+                        var: new Variable(name: 'container'),
+                        type: new FullyQualified(name: ContainerInterface::class),
+                    ),
+                ],
+                'stmts' => [
+                    new Return_(
+                        expr: new Assign(
+                            var: new ArrayDimFetch(
+                                var: new PropertyFetch(
+                                    var: new Variable(name: 'container'),
+                                    name: new Identifier(name: 'resolved'),
+                                ),
+                                dim: new String_(value: $id),
+                            ),
+                            expr: $definition,
+                        ),
+                    ),
+                ],
+            ],
+        );
     }
 }

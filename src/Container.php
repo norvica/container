@@ -41,6 +41,7 @@ final class Container implements ContainerInterface
     public function __construct(
         private readonly Definitions $definitions,
         private readonly ContainerInterface|null $compiled = null,
+        private bool $autowiring = true,
     ) {
     }
 
@@ -76,7 +77,7 @@ final class Container implements ContainerInterface
         $this->resolvingStarted($id);
 
         // if ID is a class name, try to construct it, even if it's not registered explicitly
-        if (!$this->definitions->has($id)) {
+        if (!$this->definitions->has($id) && $this->autowiring) {
             if (!class_exists($id)) {
                 throw new NotFoundException("Definition '{$id}' not found.");
             }
@@ -132,25 +133,38 @@ final class Container implements ContainerInterface
         if ($definition instanceof Obj) {
             // pure class name suggests we just use a constructor
             if (is_string($definition->instantiator) && class_exists($definition->instantiator)) {
-                $rc = new ReflectionClass($definition->instantiator);
-                if ($rc->hasMethod('__construct')) {
-                    $parameters = $this->parameters($rc->getMethod('__construct'), $definition->arguments);
+                if ($this->autowiring) {
+                    $rc = new ReflectionClass($definition->instantiator);
+                    if ($rc->hasMethod('__construct')) {
+                        $parameters = $this->parameters(
+                            $definition->arguments,
+                            $rc->getMethod('__construct'),
+                        );
+                    } else {
+                        $parameters = [];
+                    }
                 } else {
-                    $parameters = [];
+                    $parameters = $this->parameters($definition->arguments);
                 }
 
                 $instance = new ($definition->instantiator)(...$parameters);
             } else {
                 // call factory method
                 $closure = $this->closure($definition->instantiator);
-                $parameters = $this->parameters(new ReflectionFunction($closure), $definition->arguments);
+                $parameters = $this->parameters(
+                    $definition->arguments,
+                    $this->autowiring ? new ReflectionFunction($closure) : null,
+                );
                 $instance = $closure(...$parameters);
             }
 
             // perform defined calls on instance
             foreach ($definition->calls as $call) {
                 $closure = $this->closure([$instance, $call->method]);
-                $parameters = $this->parameters(new ReflectionFunction($closure), $call->arguments);
+                $parameters = $this->parameters(
+                    $call->arguments,
+                    $this->autowiring ? new ReflectionFunction($closure) : null,
+                );
                 $closure(...$parameters);
             }
 
@@ -160,7 +174,10 @@ final class Container implements ContainerInterface
         if ($definition instanceof Run) {
             // execute closure
             $closure = $this->closure($definition->instantiator);
-            $parameters = $this->parameters(new ReflectionFunction($closure), $definition->arguments);
+            $parameters = $this->parameters(
+                $definition->arguments,
+                $this->autowiring ? new ReflectionFunction($closure) : null,
+            );
 
             return $closure(...$parameters);
         }
@@ -178,24 +195,26 @@ final class Container implements ContainerInterface
         return $callable(...);
     }
 
-    private function parameters(ReflectionMethod|ReflectionFunction $reflection, array $arguments): array
+    private function parameters(array $arguments, ReflectionMethod|ReflectionFunction|null $reflection = null): array
     {
         $resolved = array_map($this->resolve(...), $arguments);
 
-        foreach ($reflection->getParameters() as $i => $rp) {
-            if ($rp->isVariadic()) {
-                break;
-            }
+        if ($reflection !== null) {
+            foreach ($reflection->getParameters() as $i => $rp) {
+                if ($rp->isVariadic()) {
+                    break;
+                }
 
-            if (isset($resolved[$i]) || isset($resolved[$rp->getName()])) {
-                continue;
-            }
+                if (isset($resolved[$i]) || isset($resolved[$rp->getName()])) {
+                    continue;
+                }
 
-            if ($rp->isDefaultValueAvailable()) {
-                continue;
-            }
+                if ($rp->isDefaultValueAvailable()) {
+                    continue;
+                }
 
-            $resolved[$rp->getName()] = $this->guess($rp);
+                $resolved[$rp->getName()] = $this->guess($rp);
+            }
         }
 
         return $resolved;

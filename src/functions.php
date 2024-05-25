@@ -7,6 +7,7 @@ namespace Norvica\Container;
 use Norvica\Container\Definition\Obj;
 use Norvica\Container\Definition\Ref;
 use Norvica\Container\Definition\Env;
+use Norvica\Container\Definition\Run;
 use Norvica\Container\Definition\Val;
 
 if (!function_exists('Norvica\Container\env')) {
@@ -27,6 +28,13 @@ if (!function_exists('Norvica\Container\obj')) {
     function obj(callable|array|string $instantiator, mixed ...$arguments): Obj
     {
         return new Obj($instantiator, ...$arguments);
+    }
+}
+
+if (!function_exists('Norvica\Container\run')) {
+    function run(callable|array $instantiator, mixed ...$arguments): Run
+    {
+        return new Run($instantiator, ...$arguments);
     }
 }
 

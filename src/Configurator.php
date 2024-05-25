@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Norvica\Container;
 
 use Closure;
-use Norvica\Container\Compiler\ContainerCompiler;
+use Norvica\Container\Compiler\Compiler;
 use Norvica\Container\Definition\Definitions;
 use Norvica\Container\Definition\Obj;
 use Norvica\Container\Definition\Ref;
@@ -28,6 +28,7 @@ final class Configurator
     private string|null $filename = null;
     private string|null $dir = null;
     private int $state;
+    private bool $autowiring = true;
 
     public function __construct(
         Definitions|null $definitions = null,
@@ -84,6 +85,13 @@ final class Configurator
         }
 
         $this->definitions->add($id, new Ref($ref));
+
+        return $this;
+    }
+
+    public function autowiring(bool $autowiring = true): self
+    {
+        $this->autowiring = $autowiring;
 
         return $this;
     }
@@ -153,7 +161,7 @@ final class Configurator
         }
 
         if ($this->state === self::COMPILING) {
-            $compiler = new ContainerCompiler($this->definitions);
+            $compiler = new Compiler($this->definitions);
             $this->write($this->dir, $this->filename, $compiler->compile($this->class));
             $this->state = self::LOADING;
         }
@@ -162,7 +170,9 @@ final class Configurator
             require_once $this->filename;
             $this->state = self::INITIALIZED;
 
-            return $this->container = new Container(new Definitions(), new ($this->class)());
+            return $this->container = $this->autowiring
+                ? new Container(new Definitions(), new ($this->class)(), $this->autowiring)
+                : new ($this->class)();
         }
 
         $this->state = self::INITIALIZED;

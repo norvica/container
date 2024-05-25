@@ -16,13 +16,12 @@ final class T implements \Psr\Container\ContainerInterface {
         }
 
         $hash = self::MAP[$id] ?? throw new \Norvica\Container\Exception\NotFoundException("Definition '{$id}' not found.");
-        $method = "_{$hash}";
 
-        return $this->resolved[$id] = $this->{$method}();
+        return self::{"_{$hash}"}($this);
     }
 
     public function has(string $id): bool
     {
         return isset(self::MAP[$id]);
     }
-};
+}

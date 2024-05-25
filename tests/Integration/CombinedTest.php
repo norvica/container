@@ -8,6 +8,7 @@ use DateTime;
 use DateTimeZone;
 use Psr\Container\ContainerInterface;
 use Tests\Norvica\Container\BaseTestCase;
+use Tests\Norvica\Container\Fixtures\Combined\DateRange;
 use Tests\Norvica\Container\Fixtures\Combined\Logger;
 use Tests\Norvica\Container\Fixtures\Combined\LoggerInterface;
 use Tests\Norvica\Container\Fixtures\Combined\UnregisteredService;
@@ -30,6 +31,7 @@ final class CombinedTest extends BaseTestCase
     public function testCompiled(): void
     {
         $container = $this->compiled(__DIR__ . '/../Fixtures/Combined/container.php');
+        $this->files = [];
         $this->assertions($container);
     }
 
@@ -60,5 +62,12 @@ final class CombinedTest extends BaseTestCase
         $unregistered = $container->get(UnregisteredService::class);
         $this->assertInstanceOf(UnregisteredService::class, $unregistered);
         $this->assertEquals($logger, $unregistered->logger);
+
+        $std = $container->get('std.instance');
+        $this->assertEquals('1970-01-01', $std->date);
+
+        $range = $container->get(DateRange::class);
+        $this->assertEquals('1999-12-31', $range->start->format('Y-m-d'));
+        $this->assertEquals('2000-01-01', $range->end->format('Y-m-d'));
     }
 }
