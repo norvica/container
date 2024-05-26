@@ -6,7 +6,7 @@ date: 2024-05-26T14:07:40+02:00
 lastmod: 2024-05-26T14:07:40+02:00
 draft: false
 seo:
- title: "PHP validation library" # custom title (optional)
+ title: "PHP dependency injection container" # custom title (optional)
  description: "" # custom description (recommended)
  canonical: "" # custom canonical URL (optional)
  noindex: false # false (default) or true
@@ -30,7 +30,8 @@ Create and configure service objects directly within your configuration
 
 ```php
 return [
-    'db.connection' => obj(DbConnection::class, name: 'main')->call('setLogger', ref('logger')),
+    'db.connection' => obj(DbConnection::class, name: 'main')
+        ->call('setLogger', ref('logger')),
 ];
 ```
 
@@ -93,7 +94,9 @@ return [
         #[Env('DB_NAME', default: 'main')] $name
     ) => "{$driver}://{$user}:{$password}@{$host}:{$port}/{$name}",
 
-    'db.connection' => static function(#[Ref('db.url')] string $url) {
+    'db.connection' => static function(
+        #[Ref('db.url')] string $url,
+    ) {
         return new DbConnection(url: $url);
     },
 ];

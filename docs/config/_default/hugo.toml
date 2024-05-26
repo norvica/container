@@ -1,4 +1,4 @@
-title = "Dependency Injection Container"
+title = "Container"
 baseurl = "/"
 canonifyURLs = false
 disableAliases = true
