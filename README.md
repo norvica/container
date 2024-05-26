@@ -1,4 +1,4 @@
-# Container
+# Dependency Injection Container
 
 [![Latest Stable Version](https://poser.pugx.org/norvica/container/v/stable.png)](https://packagist.org/packages/norvica/container)
 [![Checks](https://github.com/norvica/container/actions/workflows/checks.yml/badge.svg)](https://github.com/norvica/container/actions/workflows/checks.yml)
@@ -20,11 +20,12 @@ Complex tools can quickly become a burden. We believe in the power of simplicity
 debug, and adapt over time. This library avoids unnecessary complexity, focusing on features that offer real value
 without sacrificing performance.
 
-### Key Benefits
+### Key Features
 
-- **Blazing Fast**: Optimized for performance in production environments.
+- **Fast**: Optimized for performance in production environments.
 - **Framework Agnostic**: Integrates seamlessly with any project using the PSR-11 container interface.
-- **Explicit Over Implicit**: Prioritizes explicit, readable configuration over hidden "magic", making your code easier to maintain.
+- **Explicit Over Implicit**: Prioritizes explicit, readable configuration over hidden "magic", making your code easier
+  to maintain.
 - **Lightweight**: A minimal footprint keeps your project lean and efficient.
 - **Compilation Support**: Optimizes performance further with built-in compilation, including anonymous functions.
 - **Autowiring**: Simplify your code with automatic dependency resolution, available even after compilation.
