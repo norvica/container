@@ -1,6 +1,11 @@
 # Container
 
+[![Latest Stable Version](https://poser.pugx.org/norvica/container/v/stable.png)](https://packagist.org/packages/norvica/container)
+[![Checks](https://github.com/norvica/container/actions/workflows/checks.yml/badge.svg)](https://github.com/norvica/container/actions/workflows/checks.yml)
+
 Simple yet powerful DI container for PHP, with PSR-11 compliance and easy configuration.
+
+Read the [documentation](https://container.norvica.dev).
 
 > [!IMPORTANT]
 > This library is under active development and is not yet at version `1.0`. While some features or implementation details
@@ -57,4 +62,4 @@ code.
 composer require norvica/container
 ```
 
-Read more on [https://validation.norvica.dev](https://container.norvica.dev)
+Read the [documentation](https://container.norvica.dev).
