@@ -11,7 +11,6 @@ use Norvica\Container\Definition\Obj;
 use Norvica\Container\Definition\Ref;
 use Norvica\Container\Definition\Run;
 use Norvica\Container\Definition\Val;
-use Norvica\Container\Exception\CircularDependencyException;
 use Norvica\Container\Exception\ContainerException;
 use Norvica\Container\Exception\NotFoundException;
 use Psr\Container\ContainerExceptionInterface;
@@ -33,16 +32,14 @@ final class Container implements ContainerInterface
      */
     private array $resolved = [];
 
-    /**
-     * @var string[]
-     */
-    private array $resolving = [];
+    private Visitor $visitor;
 
     public function __construct(
         private readonly Definitions $definitions,
         private readonly ContainerInterface|null $compiled = null,
-        private bool $autowiring = true,
+        private readonly bool $autowiring = true,
     ) {
+        $this->visitor = new Visitor();
     }
 
     /**
@@ -65,16 +62,7 @@ final class Container implements ContainerInterface
             return $this->compiled->get($id);
         }
 
-        if ($this->inProgress($id)) {
-            throw new CircularDependencyException(
-                sprintf(
-                    "Circular dependency detected when resolving the following chain: '%s' → '{$id}'.",
-                    implode("' → '", $this->resolving),
-                )
-            );
-        }
-
-        $this->resolvingStarted($id);
+        $this->visitor->enter($id);
 
         // if ID is a class name, try to construct it, even if it's not registered explicitly
         if (!$this->definitions->has($id) && $this->autowiring) {
@@ -84,14 +72,14 @@ final class Container implements ContainerInterface
 
             $resolved = $this->resolve(new Obj($id));
             $this->resolved[$id] = $resolved;
-            $this->resolvingFinished($id);
+            $this->visitor->exit($id);
 
             return $resolved;
         }
 
         $resolved = $this->resolve($this->definitions->get($id));
         $this->resolved[$id] = $resolved;
-        $this->resolvingFinished($id);
+        $this->visitor->exit($id);
 
         return $resolved;
     }
@@ -247,25 +235,5 @@ final class Container implements ContainerInterface
         }
 
         return $this->get($rt->getName());
-    }
-
-    private function inProgress(string $id): bool
-    {
-        return in_array($id, $this->resolving, true);
-    }
-
-    private function resolvingStarted(string $id): void
-    {
-        $this->resolving[] = $id;
-    }
-
-    private function resolvingFinished(string $id): void
-    {
-        $index = array_search($id, $this->resolving, true);
-        if ($index === false) {
-            throw new ContainerException("Tried to finish resolving for '{$id}' that hasn't been started.");
-        }
-
-        unset($this->resolving[$index]);
     }
 }

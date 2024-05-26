@@ -12,6 +12,7 @@ use Norvica\Container\Definition\Ref;
 use Norvica\Container\Definition\Run;
 use Norvica\Container\Definition\Val;
 use Norvica\Container\Exception\ContainerException;
+use Norvica\Container\Visitor;
 use PhpParser\Node;
 use PhpParser\Node\Arg;
 use PhpParser\Node\Expr;
@@ -53,49 +54,47 @@ final class Compiler
 {
     private readonly Definitions $definitions;
     private readonly Parser $parser;
-    private array $ast;
-    private array $map;
-    private array $postponed;
+    private readonly Visitor $visitor;
+    private array $body;
+    private array $hashes;
 
     public function __construct(
         Definitions $definitions,
     ) {
         $ids = array_keys($definitions->all());
         $hashes = array_map('md5', $ids);
-        $this->map = array_combine($ids, $hashes);
+        $this->hashes = array_combine($ids, $hashes);
         $this->definitions = $definitions;
-        $this->postponed = [];
         $this->parser = (new ParserFactory())->createForNewestSupportedVersion();
+        $this->visitor = new Visitor();
     }
 
     public function compile(string $class = 'Container'): string
     {
-        $this->ast = $this->parser->parse(file_get_contents(__DIR__ . '/template.php'));
-//        echo (new \PhpParser\NodeDumper())->dump($this->ast)."\n";die;
+        $ast = $this->parser->parse(file_get_contents(__DIR__ . '/template.php'));
 
-        $this->ast[1]->name = new Identifier(name: $class);
-        $body = &$this->ast[1]->stmts;
-        $map = &$body[0]->consts[0]->value->items;
+        $ast[1]->name = new Identifier(name: $class);
+        $this->body = &$ast[1]->stmts;
+        $map = &$this->body[0]->consts[0]->value->items;
 
-        foreach ($this->map as $id => $hash) {
+        foreach ($this->hashes as $id => $hash) {
+            // skip entries processed by DFS
+            if (isset($this->body[$id])) {
+                continue;
+            }
+
             $definition = $this->definitions->get($id);
-            $body[] = $this->method($id, $hash, $this->definition($definition, $id));
+            $this->method($id, $hash, $definition);
         }
 
-        while ($this->postponed) {
-            $id = array_shift($this->postponed);
-            $body[] = $this->method($id, $this->map[$id], $this->definition(new Obj($id), $id));
-        }
-        // $this->definition(new Obj($id), $id)
-
-        foreach ($this->map as $id => $hash) {
+        foreach ($this->hashes as $id => $hash) {
             $map[] = new ArrayItem(
                 value: new String_(value: $hash),
                 key: new String_(value: $id),
             );
         }
 
-        return (new Standard())->prettyPrintFile($this->ast);
+        return (new Standard())->prettyPrintFile($ast);
     }
 
     private function definition(
@@ -104,18 +103,6 @@ final class Compiler
     ): Expr {
         if ($definition === null || is_scalar($definition)) {
             return $this->scalar($definition);
-        }
-
-        if (is_array($definition)) {
-            $items = [];
-            foreach ($definition as $key => $item) {
-                $items[] = new ArrayItem(
-                    value: $this->definition($item),
-                    key: is_int($key) ? new Int_(value: $key): new String_(value: $key),
-                );
-            }
-
-            return new Array_(items: $items);
         }
 
         if ($definition instanceof Val) {
@@ -138,7 +125,24 @@ final class Compiler
             return $this->run($definition, $id);
         }
 
-        throw new ContainerException(); // TODO: message
+        if (is_array($definition)) {
+            $items = [];
+            foreach ($definition as $key => $item) {
+                $items[] = new ArrayItem(
+                    value: $this->definition($item),
+                    key: is_int($key) ? new Int_(value: $key) : new String_(value: $key),
+                );
+            }
+
+            return new Array_(items: $items);
+        }
+
+        throw new ContainerException(
+            sprintf(
+                "Expected definition, got '%s'.",
+                get_debug_type($definition),
+            )
+        );
     }
 
     private function val(Val $definition): Expr
@@ -171,6 +175,15 @@ final class Compiler
 
     private function ref(Ref $definition): Expr
     {
+        if (!isset($this->hashes[$definition->id])) {
+            // autowiring
+            $this->hashes[$definition->id] = md5($definition->id);
+            $this->method($definition->id, $this->hashes[$definition->id], new Obj($definition->id));
+        } elseif (!isset($this->body[$definition->id])) {
+            // DFS
+            $this->method($definition->id, $this->hashes[$definition->id], $this->definitions->get($definition->id));
+        }
+
         return new Coalesce(
             left: new ArrayDimFetch(
                 var: new PropertyFetch(
@@ -181,7 +194,7 @@ final class Compiler
             ),
             right: new StaticCall(
                 class: new Name(name: 'self'),
-                name: "_{$this->map[$definition->id]}",
+                name: "_{$this->hashes[$definition->id]}",
                 args: [
                     new Arg(
                         value: new Variable(name: 'container'),
@@ -494,20 +507,15 @@ final class Compiler
             throw new ContainerException("Cannot autowire parameter {$reference} based on built-in type '{$rt->getName()}'.");
         }
 
-        $id = $rt->getName();
-        if (isset($this->map[$id])) {
-            return $this->definition(new Ref($id));
-        }
-
-        $this->map[$id] = md5($id);
-        $this->postponed[] = $id;
-
-        return $this->definition(new Ref($id));
+        return $this->definition(new Ref($rt->getName()));
     }
 
-    private function method(string $id, string $hash, Expr $definition): ClassMethod
+    private function method(string $id, string $hash, mixed $definition): void
     {
-        return new ClassMethod(
+        $this->visitor->enter($id);
+        $expr = $this->definition($definition, $id);
+
+        $this->body[$id] = new ClassMethod(
             name: "_{$hash}",
             subNodes: [
                 'flags' => 12,
@@ -527,11 +535,13 @@ final class Compiler
                                 ),
                                 dim: new String_(value: $id),
                             ),
-                            expr: $definition,
+                            expr: $expr,
                         ),
                     ),
                 ],
             ],
         );
+
+        $this->visitor->exit($id);
     }
 }

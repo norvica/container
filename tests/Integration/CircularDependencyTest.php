@@ -37,10 +37,19 @@ final class CircularDependencyTest extends BaseTestCase
     }
 
     #[DataProvider('configuration')]
-    public function test(array $configuration, string $id): void
+    public function testCold(array $configuration, string $id): void
     {
         $this->expectException(CircularDependencyException::class);
         $container = $this->container($configuration);
+
+        $container->get($id);
+    }
+
+    #[DataProvider('configuration')]
+    public function testCompiled(array $configuration, string $id): void
+    {
+        $this->expectException(CircularDependencyException::class);
+        $container = $this->compiled($configuration);
 
         $container->get($id);
     }
