@@ -2,6 +2,7 @@
 title : "Container"
 description: ""
 lead: "Pragmatic PHP dependency injection container, with PSR-11 compliance"
+cta: "/usage/getting-started/"
 date: 2024-05-26T14:07:40+02:00
 lastmod: 2024-05-26T14:07:40+02:00
 draft: false

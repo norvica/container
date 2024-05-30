@@ -22,7 +22,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Pull builder image
-        run: docker pull ghcr.io/norvica/docs:v0.1.0
+        run: docker pull ghcr.io/norvica/docs:v0.2.0
 
       - name: Build Documentation
         run: |
