@@ -1,6 +1,6 @@
 [[main]]
   name = "Docs"
-  url = "/usage/quick-start/"
+  url = "/usage/getting-started/"
   weight = 10
 
 [[main]]

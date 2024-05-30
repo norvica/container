@@ -1,5 +1,5 @@
 ---
-title: "Quick Start"
+title: "Getting Started"
 description: ""
 summary: ""
 date: 2024-05-26T14:07:40+02:00
@@ -53,7 +53,11 @@ return [
 
 ## Instantiate the Container
 
+Use the `Configurator` class to load your configuration and build the container instance:
+
 ```php
+use Norvica\Container\Configurator;
+
 $configurator = new Configurator();
 $configurator->load(__DIR__ . '/container.php');
 
@@ -62,9 +66,45 @@ $container = $configurator->container();
 
 ## Resolve Dependencies
 
-Fetch service instances from the container
+You can now request services from the container using the `get()` method:
 
 ```php
 $logger = $container->get('logger');
 $mailer = $container->get('mailer'); 
 ```
+
+## Putting It All Together
+
+**Example:**
+
+```php
+// index.php
+require 'vendor/autoload.php';
+
+use Norvica\Container\Configurator;
+use Monolog\Logger;
+
+// ... container.php (as defined above)
+
+$configurator = new Configurator();
+$configurator->load(__DIR__ . '/container.php');
+$container = $configurator->container();
+
+$logger = $container->get('logger');
+$logger->info('This is a log message.');
+```
+
+In this example:
+
+* We require Composer's autoloader.
+* We define a `Logger` service in `container.php`.
+* We instantiate the `Configurator`, load the configuration file, and build the container.
+* We get the `logger` service from the container and use it to log a message.
+
+**Key Points to Remember:**
+
+* **Service IDs:** Use descriptive names for your service IDs to make your configuration readable.
+* **Dependency Resolution:** The container automatically resolves dependencies between your services based on type hints and
+  the configuration you provide.
+* **Singleton Scope:** Services are created as singletons, meaning the container will return the same instance
+  each time you request it.

@@ -20,7 +20,7 @@ brand = "Norvica"
 
   ## Button
   navBarButton = false # false (default) or true
-  navBarButtonUrl = "/usage/quick-start/"
+  navBarButtonUrl = "/usage/getting-started/"
   navBarButtonText = "Get Started"
 
   # FlexSearch
