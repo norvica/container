@@ -95,10 +95,6 @@ final class Container implements ContainerInterface, InvokerInterface
             throw new ContainerException('Autowiring must be enabled for invoking callables using container.');
         }
 
-        if (array_is_list($arguments)) {
-            throw new ContainerException('Extra parameters should be passed as named parameters.');
-        }
-
         $closure = $this->closure($callable);
         $parameters = $this->parameters(
             $arguments,
