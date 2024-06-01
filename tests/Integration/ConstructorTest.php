@@ -118,10 +118,10 @@ final class ConstructorTest extends BaseTestCase
     #[DataProvider('configuration')]
     public function testCold(array $configuration, string $expectation): void
     {
-        $container = $this->container($configuration);
+        $container = self::container($configuration);
         $this->assertInstanceOf($expectation, $container->get('object'));
 
-        $compiled = $this->compiled($configuration);
+        $compiled = self::compiled($configuration);
         $this->assertInstanceOf($expectation, $compiled->get('object'));
     }
 }

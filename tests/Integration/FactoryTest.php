@@ -129,7 +129,7 @@ final class FactoryTest extends BaseTestCase
     #[DataProvider('configuration')]
     public function test(array $configuration): void
     {
-        $container = $this->container($configuration);
+        $container = self::container($configuration);
 
         $this->assertInstanceOf(Result::class, $container->get('object'));
     }

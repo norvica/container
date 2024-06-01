@@ -139,10 +139,10 @@ final class AnonymousFunctionTest extends BaseTestCase
     #[DataProvider('configuration')]
     public function testCold(array $configuration): void
     {
-        $container = $this->container($configuration);
+        $container = self::container($configuration);
         $this->assertInstanceOf(Result::class, $container->get('object'));
 
-        $compiled = $this->compiled($configuration);
+        $compiled = self::compiled($configuration);
         $this->assertInstanceOf(Result::class, $compiled->get('object'));
     }
 
@@ -155,7 +155,7 @@ final class AnonymousFunctionTest extends BaseTestCase
     #[DataProvider('files')]
     public function testCompiled(string $file): void
     {
-        $compiled = $this->compiled($file);
+        $compiled = self::compiled($file);
 
         $this->assertEquals('foo', $compiled->get('a'));
         $this->assertEquals('bar', $compiled->get('b'));

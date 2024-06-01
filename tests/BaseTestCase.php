@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace Tests\Norvica\Container;
 
 use Norvica\Container\Configurator;
+use Norvica\Container\InvokerInterface;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
 
 abstract class BaseTestCase extends TestCase
 {
-    protected array $files = [];
+    protected static array $files = [];
 
     public static function setUpBeforeClass(): void
     {
@@ -20,10 +21,10 @@ abstract class BaseTestCase extends TestCase
         }
     }
 
-    protected function tearDown(): void
+    public static function tearDownAfterClass(): void
     {
-        parent::tearDown();
-        foreach ($this->files as $file) {
+        parent::tearDownAfterClass();
+        foreach (static::$files as $file) {
             if (!is_readable($file)) {
                 continue;
             }
@@ -32,21 +33,23 @@ abstract class BaseTestCase extends TestCase
         }
     }
 
-    protected function container(array|string $configuration): ContainerInterface
+    protected static function container(array|string $configuration, bool $autowiring = true): ContainerInterface&InvokerInterface
     {
         $configurator = new Configurator();
+        $configurator->autowiring($autowiring);
         $configurator->load($configuration);
 
         return $configurator->container();
     }
 
-    protected function compiled(array|string $configuration): ContainerInterface
+    protected static function compiled(array|string $configuration, bool $autowiring = true): ContainerInterface&InvokerInterface
     {
         $configurator = new Configurator();
+        $configurator->autowiring($autowiring);
         $configurator->load($configuration);
 
         $hash = bin2hex(random_bytes(2));
-        $this->files[] = __DIR__ . "/../var/Container{$hash}.php";
+        static::$files[] = __DIR__ . "/../var/Container{$hash}.php";
 
         return $configurator->snapshot(__DIR__ . "/../var", "Container{$hash}")->container();
     }

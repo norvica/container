@@ -23,7 +23,7 @@ final class Configurator
     private const INITIALIZED  = 4;
 
     private Definitions $definitions;
-    private ContainerInterface|null $container = null;
+    private (ContainerInterface&InvokerInterface)|null $container = null;
     private string|null $class = null;
     private string|null $filename = null;
     private string|null $dir = null;
@@ -154,7 +154,7 @@ final class Configurator
         );
     }
 
-    public function container(): ContainerInterface
+    public function container(): ContainerInterface&InvokerInterface
     {
         if ($this->container) {
             return $this->container;
@@ -171,13 +171,17 @@ final class Configurator
             $this->state = self::INITIALIZED;
 
             return $this->container = $this->autowiring
-                ? new Container(new Definitions(), new ($this->class)(), $this->autowiring)
+                ? new Container(
+                    definitions: new Definitions(),
+                    compiled: new ($this->class)(),
+                    autowiring: $this->autowiring,
+                )
                 : new ($this->class)();
         }
 
         $this->state = self::INITIALIZED;
 
-        return $this->container = new Container($this->definitions);
+        return $this->container = new Container(definitions: $this->definitions, autowiring: $this->autowiring);
     }
 
     public function definitions(): Definitions

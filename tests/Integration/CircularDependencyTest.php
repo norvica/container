@@ -40,7 +40,7 @@ final class CircularDependencyTest extends BaseTestCase
     public function testCold(array $configuration, string $id): void
     {
         $this->expectException(CircularDependencyException::class);
-        $container = $this->container($configuration);
+        $container = self::container($configuration);
 
         $container->get($id);
     }
@@ -49,7 +49,7 @@ final class CircularDependencyTest extends BaseTestCase
     public function testCompiled(array $configuration, string $id): void
     {
         $this->expectException(CircularDependencyException::class);
-        $container = $this->compiled($configuration);
+        $container = self::compiled($configuration);
 
         $container->get($id);
     }

@@ -104,7 +104,7 @@ final class CallTest extends BaseTestCase
     #[DataProvider('configuration')]
     public function test(array $configuration, string $expectation): void
     {
-        $container = $this->container($configuration);
+        $container = self::container($configuration);
 
         $this->assertInstanceOf($expectation, $container->get('object'));
     }

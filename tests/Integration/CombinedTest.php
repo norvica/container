@@ -24,13 +24,13 @@ final class CombinedTest extends BaseTestCase
 
     public function testContainer(): void
     {
-        $container = $this->container(__DIR__ . '/../Fixtures/Combined/container.php');
+        $container = self::container(__DIR__ . '/../Fixtures/Combined/container.php');
         $this->assertions($container);
     }
 
     public function testCompiled(): void
     {
-        $container = $this->compiled(__DIR__ . '/../Fixtures/Combined/container.php');
+        $container = self::compiled(__DIR__ . '/../Fixtures/Combined/container.php');
         $this->assertions($container);
     }
 

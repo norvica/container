@@ -36,10 +36,10 @@ final class EnvironmentVariablesTest extends BaseTestCase
     public function testCold(array $configuration, array $expectation): void
     {
         [$id, $value] = $expectation;
-        $container = $this->container($configuration);
+        $container = self::container($configuration);
         $this->assertEquals($value, $container->get($id));
 
-        $compiled = $this->compiled($configuration);
+        $compiled = self::compiled($configuration);
         $this->assertEquals($value, $compiled->get($id));
     }
 }

@@ -20,15 +20,17 @@ background tasks, or triggering specific actions in your application.
 
 ## Automatic Dependency Injection
 
-When you invoke a callable through the container's `invoke()` method, it will inspect the callable's parameters and
+When you invoke a callable through using container as a callable itself, it will inspect the callable's parameters and
 automatically resolve any dependencies it can find registered in the container.
 
 ## Passing Additional Parameters
 
-Besides injecting dependencies, you can also pass additional parameters to the callable through the `invoke()` method:
+Besides injecting dependencies, you can also pass additional parameters to the call:
 
 ```php
-$result = $container->invoke(MyCallable::class, ['extraArg' => 'value']);
+$result = $container(MyCallable::class, extraArg: 'value');
+// or
+$result = $container->__invoke(MyCallable::class, extraArg: 'value');
 ```
 
 Let's illustrate how to invoke different types of callables.
@@ -45,18 +47,24 @@ class MyCommand {
 }
 
 // ...
-$container->invoke(MyCommand::class, ['message' => 'Command is executed.']);
+$container(MyCommand::class, message: 'Command is executed.');
+// or
+$container->__invoke(MyCommand::class, message: 'Command is executed.');
 ```
 
 ## Class Methods
 
 ```php
+use function Norvica\Container\ref;
+
 class MyService {
     public function processData(string $data) { /* ... */ }
 }
 
 // ...
-$container->invoke([MyService::class, 'processData'], ['data' => 'some_data']);
+$container([ref(MyService::class), 'processData'], data: 'some_data');
+// or
+$container->__invoke([ref(MyService::class), 'processData'], data: 'some_data');
 ```
 
 ## Static Methods
@@ -67,13 +75,25 @@ class Utils {
 }
 
 // ...
-$container->invoke(Utils::generateReport(...), ['startDate' => '2024-01-01', 'endDate' => '2024-01-31']);
+$container(Utils::generateReport(...), startDate: '2024-01-01', endDate: '2024-01-31');
+// or
+$container->__invoke(Utils::generateReport(...), startDate: '2024-01-01', endDate: '2024-01-31');
 ```
 
 ## Anonymous Functions
 
 ```php
-$container->invoke(function (LoggerInterface $logger, string $message) {
-    $logger->info($message);
-}, ['message' => 'Logging a message from the closure']);
+$container(
+    function (LoggerInterface $logger, string $message) {
+        $logger->info($message);
+    },
+    message: 'Logging a message from the closure',
+);
+// or
+$container->__invoke(
+    function (LoggerInterface $logger, string $message) {
+        $logger->info($message);
+    },
+    message: 'Logging a message from the closure',
+);
 ```

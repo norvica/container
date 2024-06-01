@@ -37,8 +37,8 @@ final class CollectionTest extends BaseTestCase
             $this->assertEquals('d', $collection['d']);
         };
 
-        $assert($this->container($configuration));
-        $assert($this->compiled($configuration));
+        $assert(self::container($configuration));
+        $assert(self::compiled($configuration));
     }
 
     public function testNested(): void
@@ -63,7 +63,7 @@ final class CollectionTest extends BaseTestCase
             $this->assertEquals('d', $collection['d']);
         };
 
-        $assert($this->container($configuration));
-        $assert($this->compiled($configuration));
+        $assert(self::container($configuration));
+        $assert(self::compiled($configuration));
     }
 }

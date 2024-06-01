@@ -25,7 +25,7 @@ use ReflectionParameter;
 /**
  * @internal
  */
-final class Container implements ContainerInterface
+final class Container implements ContainerInterface, InvokerInterface
 {
     /**
      * @var array<string, mixed>
@@ -87,6 +87,25 @@ final class Container implements ContainerInterface
     public function has(string $id): bool
     {
         return $this->definitions->has($id) || $this->compiled?->has($id);
+    }
+
+    public function __invoke(Closure|callable|array|string $callable, mixed ...$arguments): mixed
+    {
+        if (!$this->autowiring) {
+            throw new ContainerException('Autowiring must be enabled for invoking callables using container.');
+        }
+
+        if (array_is_list($arguments)) {
+            throw new ContainerException('Extra parameters should be passed as named parameters.');
+        }
+
+        $closure = $this->closure($callable);
+        $parameters = $this->parameters(
+            $arguments,
+            new ReflectionFunction($closure),
+        );
+
+        return $closure(...$parameters);
     }
 
     private function resolve(mixed $definition): mixed
@@ -178,6 +197,11 @@ final class Container implements ContainerInterface
         // e.g. [ref(Foo::class), 'bar']
         if (is_array($callable) && $callable[0] instanceof Ref) {
             $callable[0] = $this->resolve($callable[0]);
+        }
+
+        // e.g. Foo::class with __invoke() method
+        if (is_string($callable) && class_exists($callable)) {
+            $callable = [$this->get($callable), '__invoke'];
         }
 
         return $callable(...);
